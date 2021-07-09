@@ -4,18 +4,15 @@
 #https://mathworld.wolfram.com/GameofLife.html
 
 
-
 #Key points
-#Uses an agent based model where the 'cell' manages all changes to local state.
+#Uses an agent based model where the 'cell' manages all changes to local state
 #The cell class expects to be in a square grid (for the neighbor calculations)
-#The gol class implements the game state and logic
-
+#The gol class implements the game state, can update it, and can draw it to screen
 
 
 class cell:
 
     def __init__(self, x, y, state = None):
-
         import random
 
         self._x = x
@@ -29,10 +26,8 @@ class cell:
             self._state = bool(state)
 
  
-
     def __bool__(self):
         return self._state
-
 
 
     def state(self, revision = None):
@@ -48,16 +43,14 @@ class cell:
             exit()
 
 
-
     def update(self, grid, gridsize):
-        
-        #Calculate neighborhood value
         self._neighbors = 0
-        
-        for xpos in range(self._x-1,self._x+2):         #must offset by '2' to get the desired result
+
+        #Calculate neighborhood value
+        for xpos in range(self._x-1,self._x+2):         #Must offset by '2' to get the desired result
             for ypos in range(self._y-1,self._y+2):
 
-                col = (xpos + gridsize.x) % gridsize.x      #wrap the board, use modulus math to restrict us to the grid size
+                col = (xpos + gridsize.x) % gridsize.x      #Wrap the board, use modulus math to restrict us to the grid size
                 row = (ypos + gridsize.y) % gridsize.y
 
                 if grid[col][row].state(self._revision) is True:
@@ -65,7 +58,6 @@ class cell:
                         continue
                     else:
                         self._neighbors += 1
-        
 
         #Update state
         self._previous_state = self._state
@@ -79,9 +71,7 @@ class cell:
         elif self._neighbors >= 4:
             self._state = False     #Dies from overpopulation (4+)
 
-
         self._revision += 1
-
 
 
 
@@ -91,50 +81,53 @@ class gol:
     def __init__(self):
         from collections import namedtuple
         size = namedtuple('size','x, y')
-        self._gridsize = size(60,120)       #X is the horizontal lines (cols), Y is vertical lines (rows)
+        self._gridsize = size(30,60)       #X is the horizontal lines (cols), Y is vertical lines (rows)
         
+        #Create a 'grid' (list of lists) of 'cell' class objects and init them with their x,y location
         self._grid = [[cell(x,y) for y in range(self._gridsize.y)] for x in range(self._gridsize.x)] 
 
 
+    def __str__(self):
+        output = ""
+        for x in range(self._gridsize.x):
+            output += ''.join(['\u2588' if self._grid[x][y].state() is True else ' ' for y in range(self._gridsize.y)]) + '\n'
+
+        return(output)
+
 
     def update(self):
-                
-        #for xpos in range(self._gridsize.x):
-        #    for ypos in range(self._gridsize.y):
-        #        self._grid[xpos][ypos].update(self._grid, self._gridsize)
-
+        #Calls the cell.update() method on each position in the grid
         [[self._grid[posx][posy].update(self._grid, self._gridsize) for posy in range(self._gridsize.y)] for posx in range(self._gridsize.x)]
 
 
-
     def draw(self):
+        #There is a lot of room for improvements in this method
 
-        from os import system
-        from time import sleep
+        #Use pyplot to draw a representation of the grid
+        from matplotlib import pyplot, colors
+        colormap = colors.ListedColormap(["white","black"])
 
-        system('cls')
+        #Convert the grid bool values into float values then use .imshow() to visualize data
+        fgrid = [[1.0 if self._grid[x][y].state() is True else 0.0 for y in range(self._gridsize.y)] for x in range(self._gridsize.x)]
+        pyplot.imshow(fgrid, cmap = colormap)
 
-        for x in range(self._gridsize.x):
-            print(''.join(['\u2588' if self._grid[x][y].state() is True else ' ' for y in range(self._gridsize.y)]))
-
-        sleep(.1)
-
-
-        #use a library to draw a representation of the grid
-
-
-
-    def is_stable(self):
-        #compares all Cell's state to previous_state -- if no values change return True; the game is finished 
-
-        return False
+        pyplot.pause(.05)
+        pyplot.cla() #required otherwise the render speed will slow down over time
         
 
+    def is_stable(self):
+        #Compares all cells state to previous_state -- if no values change return True and exit 
+        #Also need a way to detect stable oscillation end states
+
+        #TODO ~implement
+        return False
 
 
 
 
 if __name__ == '__main__':
+
+    import time
 
     #Instantiate the game
     game = gol()
@@ -147,10 +140,13 @@ if __name__ == '__main__':
 
         #if game.is_stable():
         #    break
-        if count == 500:
+
+        if count == 1000:
             break
 
-        #might need a delay here
+    #Print the final state to console
+    print(game)
 
-    #pause here to leave the last draw() state on the screen
-
+    #Pause here to leave the last draw() state on the screen
+    print("Breakpoint reached, will delay 10 seconds before closing plot window")
+    time.sleep(10)
